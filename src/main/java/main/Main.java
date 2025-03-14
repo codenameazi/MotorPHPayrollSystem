@@ -2,56 +2,46 @@ package main;
 
 import service.PayrollSystem;
 import model.Employee;
-import java.util.List;
-import java.util.Scanner;
+import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import com.opencsv.exceptions.CsvException;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 public class Main {
     public static void main(String[] args) {
         PayrollSystem payrollSystem = new PayrollSystem();
 
         try {
-            // Load employee data from CSV
-            payrollSystem.loadEmployeeData("src/data/employee_data.csv");
+            File csvFile = new File("src/data/employee_data.csv");
+            payrollSystem.loadEmployeeData(csvFile.getPath());
             payrollSystem.displayEmployees();
 
-            // Retrieve employee list
             List<Employee> employeeList = payrollSystem.getEmployees();
             if (employeeList.isEmpty()) {
                 System.out.println("⚠ No employees found. Exiting payroll processing.");
                 return;
             }
 
-            // Scanner for user input
-            try (Scanner scanner = new Scanner(System.in)) {
-                for (Employee emp : employeeList) {
-                    if (emp == null) continue; // Skip null entries
+            for (Employee emp : employeeList) {
+                if (emp == null) continue;
 
-                    System.out.println("\nProcessing Payroll for: " + emp.getFullName());
-                    System.out.println("======================================");
-                    System.out.println(emp);
-
-                    double hoursWorked = getValidHoursWorked(scanner, emp);
-                    payrollSystem.processPayroll(emp, hoursWorked);
-                }
+                double hoursWorked = calculateTotalHoursWorkedForJune();
+                payrollSystem.processPayroll(emp, hoursWorked);
             }
         } catch (IOException | CsvException e) {
             System.err.println("❌ Error loading employee data: " + e.getMessage());
         }
     }
 
-    private static double getValidHoursWorked(Scanner scanner, Employee emp) {
-        double hoursWorked = 0.0;
-        while (true) {
-            System.out.print("Enter hours worked for " + emp.getFullName() + ": ");
-            if (scanner.hasNextDouble()) {
-                hoursWorked = scanner.nextDouble();
-                if (hoursWorked >= 0) return hoursWorked; // Accept only non-negative values
-            } else {
-                System.out.println("⚠ Invalid input. Please enter a valid number.");
-            }
-            scanner.nextLine(); // Clear invalid input
-        }
+    private static double calculateTotalHoursWorkedForJune() {
+        LocalDate startDate = LocalDate.of(LocalDate.now().getYear(), 6, 1);
+        LocalDate endDate = LocalDate.of(LocalDate.now().getYear(), 6, 15);
+        long totalDays = ChronoUnit.DAYS.between(startDate, endDate) + 1; // Including end date
+
+        // Assuming 8 hours per workday
+        double hoursPerDay = 8.0;
+        return totalDays * hoursPerDay;
     }
 }
